@@ -1,0 +1,29 @@
+# Environment
+.env
+**/.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build output
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+server/server
+examples/demo
+examples/examples
+
+# Test binary
+*.test
+
+# Go workspace
+go.work.sum
