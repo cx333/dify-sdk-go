@@ -16,18 +16,33 @@ import (
 //   - POST /files/upload — 上传文件（multipart/form-data）
 //   - GET /files/{file_id}/preview — 下载/预览文件
 type FileClient struct {
-	http *HTTPClient
-	user string
+	http        *HTTPClient
+	user        string // SetUser 设置的值，优先级高于 defaultUser
+	defaultUser string // 来自配置 DIFY_DEFAULT_USER，最终兜底值
 }
 
 // NewFileClient 创建 FileClient。
-func NewFileClient(http *HTTPClient) *FileClient {
-	return &FileClient{http: http}
+//
+// defaultUser 来自配置 DIFY_DEFAULT_USER，作为所有请求的最终兜底用户标识。
+// 传空字符串表示不使用默认值。
+func NewFileClient(http *HTTPClient, defaultUser string) *FileClient {
+	return &FileClient{http: http, defaultUser: defaultUser}
 }
 
-// SetUser 设置默认用户标识。
+// SetUser 设置用户标识，优先级高于 defaultUser。
 func (c *FileClient) SetUser(user string) {
 	c.user = user
+}
+
+// resolveUser 按优先级解析用户标识：参数 > SetUser > defaultUser。
+func (c *FileClient) resolveUser(paramUser string) string {
+	if paramUser != "" {
+		return paramUser
+	}
+	if c.user != "" {
+		return c.user
+	}
+	return c.defaultUser
 }
 
 // UploadFile 上传文件到 Dify。
@@ -40,7 +55,7 @@ func (c *FileClient) SetUser(user string) {
 // 使用 POST /files/upload（multipart/form-data 编码）。
 func (c *FileClient) UploadFile(ctx context.Context, filename string, fileData io.Reader, user string) (*FileUploadResponse, error) {
 	if user == "" {
-		user = c.user
+		user = c.resolveUser("")
 	}
 
 	var buf bytes.Buffer

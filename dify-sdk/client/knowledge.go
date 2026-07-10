@@ -145,7 +145,7 @@ func (c *KnowledgeClient) RetrieveSegments(ctx context.Context, datasetID string
 func (c *KnowledgeClient) CreateSegments(ctx context.Context, datasetID, documentID string, segments []SegmentInput) (*SegmentListResponse, error) {
 	var resp SegmentListResponse
 	path := "/datasets/" + datasetID + "/documents/" + documentID + "/segments"
-	req := map[string]interface{}{"segments": segments}
+	req := map[string]any{"segments": segments}
 	if err := c.http.Do(ctx, "POST", path, req, &resp); err != nil {
 		return nil, fmt.Errorf("knowledge: 创建段落失败: %w", err)
 	}

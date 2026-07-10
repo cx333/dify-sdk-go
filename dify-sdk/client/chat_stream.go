@@ -3,17 +3,18 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
 // ChatStreamEvent 流式对话的结构化事件，已分离 think/answer、提取用量、计时。
 type ChatStreamEvent struct {
-	Type           string `json:"type"`                      // thinking / answer / done / error
+	Type           string `json:"type"`                      // start / thinking / answer / done / error
 	Content        string `json:"content,omitempty"`         // 文本片段
 	ConversationID string `json:"conversation_id,omitempty"` // 会话 ID
 	MessageID      string `json:"message_id,omitempty"`      // 消息 ID
 	Usage          *Usage `json:"usage,omitempty"`           // token 用量（仅 done 事件）
-	ElapsedMs      int64  `json:"elapsed_ms,omitempty"`      // 耗时毫秒（仅 done 事件）
+	ElapsedMs      int64  `json:"elapsed_ms,omitempty"`      // 耗时毫秒（done 事件为总耗时，start 为 0）
 	Error          string `json:"error,omitempty"`           // 错误信息（仅 error 事件）
 }
 
@@ -37,6 +38,9 @@ func (c *ChatClient) SendChatStream(ctx context.Context, req ChatRequest) (<-cha
 			startedAt = time.Now()
 		)
 
+		// 流开始
+		eventCh <- ChatStreamEvent{Type: "start"}
+
 		for {
 			select {
 			case ev, ok := <-rawEvents:
@@ -57,6 +61,8 @@ func (c *ChatClient) SendChatStream(ctx context.Context, req ChatRequest) (<-cha
 				if ev.MessageID != "" {
 					msgID = ev.MessageID
 				}
+
+				DebugRawEvent(ev.Event, ev.Answer, ev.Metadata)
 
 				if u := extractUsage(ev.Metadata); u != nil {
 					usage = u
@@ -95,13 +101,33 @@ func (c *ChatClient) SendChatStream(ctx context.Context, req ChatRequest) (<-cha
 }
 
 // extractUsage 从 SSE metadata 中提取 token 用量。
+// Dify 在 message_end 事件中通过 metadata.usage 返回用量。
 func extractUsage(raw json.RawMessage) *Usage {
 	if len(raw) == 0 {
 		return nil
 	}
+
+	// 标准格式：{"usage": {...}, "retriever_resources": [...]}
 	var meta ChatMetadata
-	if err := json.Unmarshal(raw, &meta); err != nil {
-		return nil
+	if err := json.Unmarshal(raw, &meta); err == nil && meta.Usage != nil {
+		return meta.Usage
 	}
-	return meta.Usage
+
+	// 兼容格式：{"usage": {...}}（无外层 metadata 包裹）
+	var alt struct {
+		Usage Usage `json:"usage"`
+	}
+	if err := json.Unmarshal(raw, &alt); err == nil && alt.Usage.TotalTokens > 0 {
+		return &alt.Usage
+	}
+
+	return nil
+}
+
+// DebugRawEvent 打印原始 SSE 事件的 metadata 到 stdout，用于排查 Dify 返回格式。
+// 仅在开发调试时打开。
+func DebugRawEvent(event, answer string, metadata json.RawMessage) {
+	if len(metadata) > 0 {
+		fmt.Printf("[DEBUG] event=%s answer_len=%d metadata=%s\n", event, len(answer), string(metadata))
+	}
 }

@@ -35,7 +35,7 @@ func TestChatClient_SendMessage(t *testing.T) {
 	})
 	defer srv.Close()
 
-	c := NewChatClient(httpClient)
+	c := NewChatClient(httpClient, "")
 	resp, err := c.SendMessage(context.Background(), ChatRequest{
 		Query:        "你好",
 		User:         "user-1",
@@ -65,7 +65,7 @@ func TestChatClient_GetConversations(t *testing.T) {
 	})
 	defer srv.Close()
 
-	c := NewChatClient(httpClient)
+	c := NewChatClient(httpClient, "")
 	resp, err := c.GetConversations(context.Background(), "user-1", "", 20)
 	if err != nil {
 		t.Fatalf("GetConversations 失败: %v", err)
@@ -81,7 +81,7 @@ func TestChatClient_Feedback(t *testing.T) {
 	})
 	defer srv.Close()
 
-	c := NewChatClient(httpClient)
+	c := NewChatClient(httpClient, "")
 	err := c.Feedback(context.Background(), "msg-1", FeedbackRequest{
 		Rating: "like",
 		User:   "user-1",
@@ -101,7 +101,7 @@ func TestChatClient_GetAppInfo(t *testing.T) {
 	})
 	defer srv.Close()
 
-	c := NewChatClient(httpClient)
+	c := NewChatClient(httpClient, "")
 	info, err := c.GetAppInfo(context.Background())
 	if err != nil {
 		t.Fatalf("GetAppInfo 失败: %v", err)
@@ -129,7 +129,7 @@ func TestWorkflowClient_Run(t *testing.T) {
 	})
 	defer srv.Close()
 
-	c := NewWorkflowClient(httpClient)
+	c := NewWorkflowClient(httpClient, "")
 	resp, err := c.Run(context.Background(), WorkflowRunRequest{
 		Inputs: map[string]interface{}{"text": "hello"},
 		User:   "user-1",
@@ -152,7 +152,7 @@ func TestWorkflowClient_GetRunDetail(t *testing.T) {
 	})
 	defer srv.Close()
 
-	c := NewWorkflowClient(httpClient)
+	c := NewWorkflowClient(httpClient, "")
 	resp, err := c.GetRunDetail(context.Background(), "run-1")
 	if err != nil {
 		t.Fatalf("GetRunDetail 失败: %v", err)
@@ -243,7 +243,7 @@ func TestFileClient_Upload(t *testing.T) {
 	})
 	defer srv.Close()
 
-	c := NewFileClient(httpClient)
+	c := NewFileClient(httpClient, "")
 	resp, err := c.UploadFile(context.Background(), "test.txt", &mockReader{data: []byte("hello")}, "user-1")
 	if err != nil {
 		t.Fatalf("UploadFile 失败: %v", err)
@@ -284,7 +284,7 @@ func TestChatClient_ErrorResponse(t *testing.T) {
 	})
 	defer srv.Close()
 
-	c := NewChatClient(httpClient)
+	c := NewChatClient(httpClient, "")
 	_, err := c.SendMessage(context.Background(), ChatRequest{
 		Query: "hi", User: "u1", Inputs: map[string]interface{}{},
 	})

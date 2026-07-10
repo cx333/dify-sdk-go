@@ -35,7 +35,7 @@ func main() {
 	switch cmd {
 	case "info":
 		// 获取应用基本信息
-		c := client.NewChatClient(httpClient)
+		c := client.NewChatClient(httpClient, cfg.DefaultUser)
 		info, err := c.GetAppInfo(ctx)
 		if err != nil {
 			log.Fatalf("获取应用信息失败: %v", err)
@@ -54,7 +54,7 @@ func main() {
 		user := os.Args[2]
 		query := strings.Join(os.Args[3:], " ")
 
-		c := client.NewChatClient(httpClient)
+		c := client.NewChatClient(httpClient, cfg.DefaultUser)
 		resp, err := c.SendMessage(ctx, client.ChatRequest{
 			Query:  query,
 			User:   user,
@@ -74,7 +74,7 @@ func main() {
 			return
 		}
 		user := os.Args[2]
-		c := client.NewChatClient(httpClient)
+		c := client.NewChatClient(httpClient, cfg.DefaultUser)
 		resp, err := c.GetConversations(ctx, user, "", 20)
 		if err != nil {
 			log.Fatalf("获取会话列表失败: %v", err)
@@ -99,7 +99,7 @@ func main() {
 			}
 		}
 
-		c := client.NewWorkflowClient(httpClient)
+		c := client.NewWorkflowClient(httpClient, cfg.DefaultUser)
 		resp, err := c.Run(ctx, client.WorkflowRunRequest{
 			Inputs: inputs,
 			User:   user,

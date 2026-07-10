@@ -29,6 +29,34 @@ type Config struct {
 	Timeout time.Duration
 	// MaxRetries 请求失败后的最大重试次数，默认 3 次
 	MaxRetries int
+	// DefaultUser 默认用户标识。当业务层未传入 user 参数且未调用 SetUser 时，
+	// SDK 将使用此值作为兜底。通过环境变量 DIFY_DEFAULT_USER 设置。
+	//
+	// 安全警告（务必阅读）：
+	//
+	// Dify 平台通过 "user + conversation_id" 组合来隔离会话记忆。
+	// 如果所有请求使用相同的 user，Dify 会将它们视为同一用户，导致：
+	//
+	//   1. 会话记忆串扰 — 用户 A 的对话可能被注入到用户 B 的上下文中
+	//   2. 会话列表混乱 — 所有终端用户的对话混在一起
+	//   3. 消息反馈污染 — like/dislike 统计失真
+	//
+	// 推荐做法：
+	//
+	//   1. 始终由业务层在请求中传入真实用户标识（如登录用户的 ID）
+	//   2. DIFY_DEFAULT_USER 仅作为开发/测试环境的兜底，或单用户内部工具场景
+	//   3. 生产环境务必使用每请求独立传入 user 参数
+	//
+	// 使用场景：
+	//   - 单用户内部工具（如公司内部知识库问答机器人）— 可以依赖此默认值
+	//   - 多用户 SaaS 产品 — 严禁依赖此默认值，必须逐请求传入真实 user
+	//   - 开发/测试环境 — 方便快速调试，无需每次指定 user
+	//
+	// 示例：
+	//   DIFY_DEFAULT_USER=internal-tool     # 内部工具，只有一种用户
+	//   DIFY_DEFAULT_USER=dev-test          # 开发环境，数据隔离不重要
+	//   # 生产多租户环境：不设此值，由业务代码逐请求传入 user
+	DefaultUser string
 }
 
 // Load 从指定路径读取 .env 文件，解析后返回 Config。
@@ -74,6 +102,9 @@ func Load(path string) (*Config, error) {
 		}
 		cfg.MaxRetries = n
 	}
+
+	// 默认用户标识（可选）。不设置时客户端不会自动填充 user 字段。
+	cfg.DefaultUser = os.Getenv("DIFY_DEFAULT_USER")
 
 	return cfg, nil
 }

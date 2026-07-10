@@ -20,18 +20,36 @@ import (
 //   - GET /info — 获取应用基本信息
 //   - GET /parameters — 获取应用参数配置
 type ChatClient struct {
-	http *HTTPClient
-	user string // 默认用户标识
+	http        *HTTPClient
+	user        string // SetUser 设置的值，优先级高于 defaultUser
+	defaultUser string // 来自配置 DIFY_DEFAULT_USER，最终兜底值
 }
 
 // NewChatClient 创建 ChatClient。
-func NewChatClient(http *HTTPClient) *ChatClient {
-	return &ChatClient{http: http}
+//
+// defaultUser 来自配置 DIFY_DEFAULT_USER，作为所有请求的最终兜底用户标识。
+// 传空字符串表示不使用默认值。
+// 关于 defaultUser 的安全影响，详见 config.Config.DefaultUser 的文档。
+func NewChatClient(http *HTTPClient, defaultUser string) *ChatClient {
+	return &ChatClient{http: http, defaultUser: defaultUser}
 }
 
-// SetUser 设置默认用户标识，未单独指定 user 参数的方法将使用此值。
+// SetUser 设置用户标识，优先级高于 defaultUser。
+// 未单独指定 user 参数的方法将使用此值。
+// 同时设置了 SetUser 和 DIFY_DEFAULT_USER 时，SetUser 优先。
 func (c *ChatClient) SetUser(user string) {
 	c.user = user
+}
+
+// resolveUser 按优先级解析用户标识：参数 > SetUser > defaultUser。
+func (c *ChatClient) resolveUser(paramUser string) string {
+	if paramUser != "" {
+		return paramUser
+	}
+	if c.user != "" {
+		return c.user
+	}
+	return c.defaultUser
 }
 
 // SendMessage 以阻塞模式发送对话消息。
@@ -41,7 +59,7 @@ func (c *ChatClient) SendMessage(ctx context.Context, req ChatRequest) (*ChatCom
 		req.ResponseMode = "blocking"
 	}
 	if req.User == "" {
-		req.User = c.user
+		req.User = c.resolveUser(req.User)
 	}
 	var resp ChatCompletionResponse
 	if err := c.http.Do(ctx, "POST", "/chat-messages", req, &resp); err != nil {
@@ -55,7 +73,7 @@ func (c *ChatClient) SendMessage(ctx context.Context, req ChatRequest) (*ChatCom
 func (c *ChatClient) SendMessageStream(ctx context.Context, req ChatRequest) (<-chan SseEvent, <-chan error) {
 	req.ResponseMode = "streaming"
 	if req.User == "" {
-		req.User = c.user
+		req.User = c.resolveUser(req.User)
 	}
 	return c.http.Stream(ctx, "POST", "/chat-messages", req)
 }
@@ -64,7 +82,7 @@ func (c *ChatClient) SendMessageStream(ctx context.Context, req ChatRequest) (<-
 // 使用 POST /chat-messages/{task_id}/stop。
 func (c *ChatClient) StopGeneration(ctx context.Context, taskID, user string) error {
 	if user == "" {
-		user = c.user
+		user = c.resolveUser("")
 	}
 	var result SuccessResult
 	if err := c.http.Do(ctx, "POST", "/chat-messages/"+taskID+"/stop", map[string]string{"user": user}, &result); err != nil {
@@ -77,7 +95,7 @@ func (c *ChatClient) StopGeneration(ctx context.Context, taskID, user string) er
 // 使用 GET /messages/{message_id}/suggested。
 func (c *ChatClient) GetSuggestedQuestions(ctx context.Context, messageID, user string) ([]string, error) {
 	if user == "" {
-		user = c.user
+		user = c.resolveUser("")
 	}
 	path := fmt.Sprintf("/messages/%s/suggested?user=%s", messageID, user)
 	var resp struct {
@@ -94,7 +112,7 @@ func (c *ChatClient) GetSuggestedQuestions(ctx context.Context, messageID, user 
 // 使用 GET /conversations。
 func (c *ChatClient) GetConversations(ctx context.Context, user, lastID string, limit int) (*ConversationListResponse, error) {
 	if user == "" {
-		user = c.user
+		user = c.resolveUser("")
 	}
 	path := fmt.Sprintf("/conversations?user=%s", user)
 	if lastID != "" {
@@ -114,7 +132,7 @@ func (c *ChatClient) GetConversations(ctx context.Context, user, lastID string, 
 // 使用 GET /messages。
 func (c *ChatClient) GetMessages(ctx context.Context, conversationID, user, firstID string, limit int) (*MessageListResponse, error) {
 	if user == "" {
-		user = c.user
+		user = c.resolveUser("")
 	}
 	path := fmt.Sprintf("/messages?conversation_id=%s&user=%s", conversationID, user)
 	if firstID != "" {
@@ -134,7 +152,7 @@ func (c *ChatClient) GetMessages(ctx context.Context, conversationID, user, firs
 // 使用 POST /messages/{message_id}/feedbacks。
 func (c *ChatClient) Feedback(ctx context.Context, messageID string, req FeedbackRequest) error {
 	if req.User == "" {
-		req.User = c.user
+		req.User = c.resolveUser(req.User)
 	}
 	var result SuccessResult
 	if err := c.http.Do(ctx, "POST", "/messages/"+messageID+"/feedbacks", req, &result); err != nil {
@@ -147,7 +165,7 @@ func (c *ChatClient) Feedback(ctx context.Context, messageID string, req Feedbac
 // 使用 POST /conversations/{conversation_id}/name。
 func (c *ChatClient) RenameConversation(ctx context.Context, conversationID string, req ConversationRenameRequest) (*Conversation, error) {
 	if req.User == "" {
-		req.User = c.user
+		req.User = c.resolveUser(req.User)
 	}
 	var resp Conversation
 	if err := c.http.Do(ctx, "POST", "/conversations/"+conversationID+"/name", req, &resp); err != nil {
@@ -160,7 +178,7 @@ func (c *ChatClient) RenameConversation(ctx context.Context, conversationID stri
 // 使用 DELETE /conversations/{conversation_id}。
 func (c *ChatClient) DeleteConversation(ctx context.Context, conversationID, user string) error {
 	if user == "" {
-		user = c.user
+		user = c.resolveUser("")
 	}
 	var body map[string]string
 	if user != "" {
@@ -176,7 +194,7 @@ func (c *ChatClient) DeleteConversation(ctx context.Context, conversationID, use
 // 使用 GET /conversations/{conversation_id}/variables。
 func (c *ChatClient) GetConversationVariables(ctx context.Context, conversationID, user string) ([]interface{}, error) {
 	if user == "" {
-		user = c.user
+		user = c.resolveUser("")
 	}
 	path := fmt.Sprintf("/conversations/%s/variables?user=%s", conversationID, user)
 	var resp struct {

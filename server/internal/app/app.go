@@ -139,7 +139,7 @@ func preloadApps(cfg *sdkconfig.Config, log *logger.Logger) *store.MemoryStore {
 
 	for i, key := range cfg.APIKeys {
 		c := client.NewHTTPClient(cfg.BaseURL, key, cfg.Timeout, client.DefaultRetryConfig())
-		chatClient := client.NewChatClient(c)
+		chatClient := client.NewChatClient(c, "")
 		info, err := chatClient.GetAppInfo(ctx)
 		if err != nil {
 			log.Warn(ctx, "获取应用信息失败",

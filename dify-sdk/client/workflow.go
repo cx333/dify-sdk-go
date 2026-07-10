@@ -15,26 +15,42 @@ import (
 //   - POST /workflows/tasks/{task_id}/stop — 停止执行
 //   - GET /workflow/{workflow_run_id}/events — 流式获取事件
 type WorkflowClient struct {
-	http *HTTPClient
-	user string
+	http        *HTTPClient
+	user        string // SetUser 设置的值，优先级高于 defaultUser
+	defaultUser string // 来自配置 DIFY_DEFAULT_USER，最终兜底值
 }
 
 // NewWorkflowClient 创建 WorkflowClient。
-func NewWorkflowClient(http *HTTPClient) *WorkflowClient {
-	return &WorkflowClient{http: http}
+//
+// defaultUser 来自配置 DIFY_DEFAULT_USER，作为所有请求的最终兜底用户标识。
+// 传空字符串表示不使用默认值。
+// 关于 defaultUser 的安全影响，详见 config.Config.DefaultUser 的文档。
+func NewWorkflowClient(http *HTTPClient, defaultUser string) *WorkflowClient {
+	return &WorkflowClient{http: http, defaultUser: defaultUser}
 }
 
-// SetUser 设置默认用户标识。
+// SetUser 设置用户标识，优先级高于 defaultUser。
 func (c *WorkflowClient) SetUser(user string) {
 	c.user = user
 }
 
+// resolveUser 按优先级解析用户标识：参数 > SetUser > defaultUser。
+func (c *WorkflowClient) resolveUser(paramUser string) string {
+	if paramUser != "" {
+		return paramUser
+	}
+	if c.user != "" {
+		return c.user
+	}
+	return c.defaultUser
+}
+
 // WorkflowRunRequest 执行工作流的请求体。
 type WorkflowRunRequest struct {
-	Inputs       map[string]interface{} `json:"inputs"`                  // 工作流输入变量
-	ResponseMode string                 `json:"response_mode,omitempty"` // "streaming" 或 "blocking"
-	User         string                 `json:"user"`                    // 用户标识
-	Files        []InputFile            `json:"files,omitempty"`         // 附加文件
+	Inputs       map[string]any `json:"inputs"`                  // 工作流输入变量
+	ResponseMode string         `json:"response_mode,omitempty"` // "streaming" 或 "blocking"
+	User         string         `json:"user"`                    // 用户标识
+	Files        []InputFile    `json:"files,omitempty"`         // 附加文件
 }
 
 // WorkflowResult 工作流执行结果。
@@ -42,7 +58,7 @@ type WorkflowResult struct {
 	ID          string                 `json:"id"`
 	WorkflowID  string                 `json:"workflow_id"`
 	Status      string                 `json:"status"` // running / succeeded / failed / stopped / partial-succeeded / paused
-	Outputs     map[string]interface{} `json:"outputs,omitempty"`
+	Outputs     map[string]any `json:"outputs,omitempty"`
 	Error       string                 `json:"error,omitempty"`
 	ElapsedTime float64                `json:"elapsed_time,omitempty"`
 	TotalTokens int                    `json:"total_tokens,omitempty"`
@@ -82,7 +98,7 @@ func (c *WorkflowClient) Run(ctx context.Context, req WorkflowRunRequest) (*Work
 		req.ResponseMode = "blocking"
 	}
 	if req.User == "" {
-		req.User = c.user
+		req.User = c.resolveUser(req.User)
 	}
 	var resp WorkflowBlockingResponse
 	if err := c.http.Do(ctx, "POST", "/workflows/run", req, &resp); err != nil {
@@ -96,7 +112,7 @@ func (c *WorkflowClient) Run(ctx context.Context, req WorkflowRunRequest) (*Work
 func (c *WorkflowClient) RunStream(ctx context.Context, req WorkflowRunRequest) (<-chan SseEvent, <-chan error) {
 	req.ResponseMode = "streaming"
 	if req.User == "" {
-		req.User = c.user
+		req.User = c.resolveUser(req.User)
 	}
 	return c.http.Stream(ctx, "POST", "/workflows/run", req)
 }
@@ -108,7 +124,7 @@ func (c *WorkflowClient) RunByID(ctx context.Context, workflowID string, req Wor
 		req.ResponseMode = "blocking"
 	}
 	if req.User == "" {
-		req.User = c.user
+		req.User = c.resolveUser(req.User)
 	}
 	var resp WorkflowBlockingResponse
 	path := "/workflows/" + workflowID + "/run"
@@ -161,7 +177,7 @@ func (c *WorkflowClient) GetLogs(ctx context.Context, opts WorkflowLogsOptions) 
 // 使用 POST /workflows/tasks/{task_id}/stop。
 func (c *WorkflowClient) StopTask(ctx context.Context, taskID, user string) error {
 	if user == "" {
-		user = c.user
+		user = c.resolveUser("")
 	}
 	var result SuccessResult
 	path := "/workflows/tasks/" + taskID + "/stop"
@@ -175,7 +191,7 @@ func (c *WorkflowClient) StopTask(ctx context.Context, taskID, user string) erro
 // 使用 GET /workflow/{workflow_run_id}/events。
 func (c *WorkflowClient) StreamEvents(ctx context.Context, workflowRunID, user string, includeStateSnapshot, continueOnPause bool) (<-chan SseEvent, <-chan error) {
 	if user == "" {
-		user = c.user
+		user = c.resolveUser("")
 	}
 	path := fmt.Sprintf("/workflow/%s/events?user=%s", workflowRunID, user)
 	if includeStateSnapshot {

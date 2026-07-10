@@ -44,8 +44,8 @@ func main() {
 
 	// 4. 注入依赖并注册演示路由
 	if err := container.Invoke(func(httpClient *client.HTTPClient) {
-		chatClient := client.NewChatClient(httpClient)
-		wfClient := client.NewWorkflowClient(httpClient)
+		chatClient := client.NewChatClient(httpClient, cfg.DefaultUser)
+		wfClient := client.NewWorkflowClient(httpClient, cfg.DefaultUser)
 		kbClient := client.NewKnowledgeClient(httpClient)
 
 		v1 := app.Group("/api/v1")

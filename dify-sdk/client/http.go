@@ -97,7 +97,7 @@ func (c *HTTPClient) BaseURL() string {
 //   - Accept: application/json
 //
 // 非 2xx 响应返回 *DifyError；网络错误自动重试。
-func (c *HTTPClient) Do(ctx context.Context, method, path string, body interface{}, result interface{}) error {
+func (c *HTTPClient) Do(ctx context.Context, method, path string, body any, result any) error {
 	var bodyReader io.Reader
 	if body != nil {
 		data, err := json.Marshal(body)

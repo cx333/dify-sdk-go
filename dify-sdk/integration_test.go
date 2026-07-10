@@ -74,8 +74,8 @@ func TestIntegration_FullChain(t *testing.T) {
 		}
 
 		// 4. 测试各 API Client
-		chatClient := client.NewChatClient(h)
-		wfClient := client.NewWorkflowClient(h)
+		chatClient := client.NewChatClient(h, "")
+		wfClient := client.NewWorkflowClient(h, "")
 		kbClient := client.NewKnowledgeClient(h)
 
 		info, err := chatClient.GetAppInfo(context.Background())

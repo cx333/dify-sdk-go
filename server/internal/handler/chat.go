@@ -67,7 +67,7 @@ func (h *ChatHandler) Chat(c fiber.Ctx) error {
 		return response.Fail(c, fiber.StatusBadRequest, 40002, "key_index 无效，应用不存在")
 	}
 
-	chatClient := client.NewChatClient(c2)
+	chatClient := client.NewChatClient(c2, "")
 	eventCh, _ := chatClient.SendChatStream(c.Context(), client.ChatRequest{
 		Query:  req.Query,
 		User:   "dify-server",
@@ -81,6 +81,12 @@ func (h *ChatHandler) Chat(c fiber.Ctx) error {
 
 	c.RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
 		for ev := range eventCh {
+			h.log.Debug(c.Context(), "chat sse event",
+				"type", ev.Type,
+				"content_len", len(ev.Content),
+				"elapsed_ms", ev.ElapsedMs,
+				"has_usage", ev.Usage != nil,
+			)
 			writeSSE(w, ev.Type, ev)
 			w.Flush()
 		}
