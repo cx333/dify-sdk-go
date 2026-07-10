@@ -63,7 +63,7 @@ type Config struct {
 // 缺失必填字段（DIFY_BASE_URL、DIFY_API_KEYS）时返回错误。
 func Load(path string) (*Config, error) {
 	if err := godotenv.Load(path); err != nil {
-		return nil, fmt.Errorf("加载 .env 文件失败: %w", err)
+		return nil, fmt.Errorf("load .env file failed: %w", err)
 	}
 
 	cfg := &Config{
@@ -73,7 +73,7 @@ func Load(path string) (*Config, error) {
 	}
 
 	if cfg.BaseURL == "" {
-		return nil, fmt.Errorf("DIFY_BASE_URL 为必填项")
+		return nil, fmt.Errorf("DIFY_BASE_URL is required")
 	}
 
 	// 优先读取编号环境变量 DIFY_API_KEY_0, DIFY_API_KEY_1, ...
@@ -82,7 +82,7 @@ func Load(path string) (*Config, error) {
 	if len(cfg.APIKeys) == 0 {
 		keys := os.Getenv("DIFY_API_KEYS")
 		if keys == "" {
-			return nil, fmt.Errorf("DIFY_API_KEYS 或 DIFY_API_KEY_N 为必填项")
+			return nil, fmt.Errorf("DIFY_API_KEYS or DIFY_API_KEY_N is required")
 		}
 		cfg.APIKeys = splitKeys(keys)
 	}
@@ -90,7 +90,7 @@ func Load(path string) (*Config, error) {
 	if v := os.Getenv("DIFY_TIMEOUT"); v != "" {
 		d, err := time.ParseDuration(v)
 		if err != nil {
-			return nil, fmt.Errorf("DIFY_TIMEOUT 格式无效: %w", err)
+			return nil, fmt.Errorf("DIFY_TIMEOUT: invalid format: %w", err)
 		}
 		cfg.Timeout = d
 	}
@@ -98,7 +98,7 @@ func Load(path string) (*Config, error) {
 	if v := os.Getenv("DIFY_MAX_RETRIES"); v != "" {
 		var n int
 		if _, err := fmt.Sscanf(v, "%d", &n); err != nil {
-			return nil, fmt.Errorf("DIFY_MAX_RETRIES 格式无效: %w", err)
+			return nil, fmt.Errorf("DIFY_MAX_RETRIES: invalid format: %w", err)
 		}
 		cfg.MaxRetries = n
 	}

@@ -291,7 +291,7 @@ application.Registry().Register("my_method", &methods.MethodDef{
     Name:        "my_method",
     Description: "方法说明",
     InputSchema: json.RawMessage(`{"type":"object","properties":{...}}`),
-    Handler: func(ctx context.Context, params json.RawMessage) (interface{}, error) {
+    Handler: func(ctx context.Context, params json.RawMessage) (any, error) {
         // 使用 a.HTTPClientByIndex(keyIndex) 选择目标应用
         c := a.HTTPClientByIndex(0)
         // 或使用默认客户端 a.HTTPClient()

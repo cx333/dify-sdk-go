@@ -32,7 +32,7 @@ func registerExamples(a *app.App) {
 		Description:  "健康检查：返回 pong",
 		InputSchema:  json.RawMessage(`{"type":"object","properties":{}}`),
 		OutputSchema: json.RawMessage(`{"type":"object","properties":{"message":{"type":"string"}}}`),
-		Handler: func(ctx context.Context, params json.RawMessage) (interface{}, error) {
+		Handler: func(ctx context.Context, params json.RawMessage) (any, error) {
 			return map[string]string{"message": "pong"}, nil
 		},
 	})
@@ -40,11 +40,11 @@ func registerExamples(a *app.App) {
 	// call_dify — 示例：通过共享 HTTPClient 调用 Dify API。
 	// 支持 key_index 参数选择目标应用（默认 0）。
 	r.Register("call_dify", &methods.MethodDef{
-		Name:        "call_dify",
-		Description: "向 Dify 发送对话消息并返回结果",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"query":{"type":"string"},"key_index":{"type":"integer","default":0}},"required":["query"]}`),
+		Name:         "call_dify",
+		Description:  "向 Dify 发送对话消息并返回结果",
+		InputSchema:  json.RawMessage(`{"type":"object","properties":{"query":{"type":"string"},"key_index":{"type":"integer","default":0}},"required":["query"]}`),
 		OutputSchema: json.RawMessage(`{"type":"object","properties":{"answer":{"type":"string"}}}`),
-		Handler: func(ctx context.Context, params json.RawMessage) (interface{}, error) {
+		Handler: func(ctx context.Context, params json.RawMessage) (any, error) {
 			var p struct {
 				Query    string `json:"query"`
 				KeyIndex int    `json:"key_index"`
@@ -58,8 +58,8 @@ func registerExamples(a *app.App) {
 			var result struct {
 				Answer string `json:"answer"`
 			}
-			req := map[string]interface{}{
-				"inputs":          map[string]interface{}{},
+			req := map[string]any{
+				"inputs":          map[string]any{},
 				"query":           p.Query,
 				"response_mode":   "blocking",
 				"conversation_id": "",

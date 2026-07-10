@@ -20,7 +20,7 @@ func TestDo_Success(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewHTTPClient(srv.URL, "test-key", 10*time.Second, DefaultRetryConfig())
+	c := NewHTTPClient(srv.URL, "test-key", 10*time.Second, DefaultRetryConfig(3))
 	var result map[string]string
 	err := c.Do(context.Background(), "POST", "/chat-messages", map[string]string{"query": "hi"}, &result)
 	if err != nil {
@@ -34,7 +34,7 @@ func TestDo_Success(t *testing.T) {
 func TestDo_ErrorResponse(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"code":    "invalid_param",
 			"message": "missing query",
 			"status":  400,
@@ -42,7 +42,7 @@ func TestDo_ErrorResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewHTTPClient(srv.URL, "test-key", 10*time.Second, DefaultRetryConfig())
+	c := NewHTTPClient(srv.URL, "test-key", 10*time.Second, DefaultRetryConfig(3))
 	err := c.Do(context.Background(), "POST", "/chat-messages", nil, nil)
 	if err == nil {
 		t.Fatal("expected error")
@@ -62,7 +62,7 @@ func TestDo_Timeout(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewHTTPClient(srv.URL, "test-key", 50*time.Millisecond, DefaultRetryConfig())
+	c := NewHTTPClient(srv.URL, "test-key", 50*time.Millisecond, DefaultRetryConfig(3))
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
 
@@ -83,7 +83,7 @@ func TestDo_Retry(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	cfg := DefaultRetryConfig()
+	cfg := DefaultRetryConfig(3)
 	cfg.BaseDelay = 1 * time.Millisecond
 
 	c := NewHTTPClient(srv.URL, "test-key", 10*time.Second, cfg)
@@ -115,7 +115,7 @@ func TestSSEStream_Parsing(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewHTTPClient(srv.URL, "test-key", 10*time.Second, DefaultRetryConfig())
+	c := NewHTTPClient(srv.URL, "test-key", 10*time.Second, DefaultRetryConfig(3))
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -163,7 +163,7 @@ func TestSSEStream_SkipsPing(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewHTTPClient(srv.URL, "test-key", 10*time.Second, DefaultRetryConfig())
+	c := NewHTTPClient(srv.URL, "test-key", 10*time.Second, DefaultRetryConfig(3))
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

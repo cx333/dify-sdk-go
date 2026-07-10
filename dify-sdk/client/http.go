@@ -22,12 +22,16 @@ type RetryConfig struct {
 }
 
 // DefaultRetryConfig 返回标准重试配置：
-//   - 最多重试 3 次
 //   - 初始延迟 500ms，指数递增至最大 10s
 //   - 仅对 429/502/503/504 状态码重试
-func DefaultRetryConfig() RetryConfig {
+//
+// maxRetries 为最大重试次数，<=0 时默认 3 次。
+func DefaultRetryConfig(maxRetries int) RetryConfig {
+	if maxRetries <= 0 {
+		maxRetries = 3
+	}
 	return RetryConfig{
-		MaxRetries:  3,
+		MaxRetries:  maxRetries,
 		BaseDelay:   500 * time.Millisecond,
 		MaxDelay:    10 * time.Second,
 		StatusCodes: RetryableStatusCodes,
@@ -102,14 +106,14 @@ func (c *HTTPClient) Do(ctx context.Context, method, path string, body any, resu
 	if body != nil {
 		data, err := json.Marshal(body)
 		if err != nil {
-			return fmt.Errorf("序列化请求体失败: %w", err)
+			return fmt.Errorf("marshal request body failed: %w", err)
 		}
 		bodyReader = bytes.NewReader(data)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, bodyReader)
 	if err != nil {
-		return fmt.Errorf("构建请求失败: %w", err)
+		return fmt.Errorf("build request failed: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
@@ -123,7 +127,7 @@ func (c *HTTPClient) Do(ctx context.Context, method, path string, body any, resu
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("读取响应失败: %w", err)
+		return fmt.Errorf("read response failed: %w", err)
 	}
 
 	if resp.StatusCode >= 400 {
@@ -132,10 +136,20 @@ func (c *HTTPClient) Do(ctx context.Context, method, path string, body any, resu
 
 	if result != nil {
 		if err := json.Unmarshal(respBody, result); err != nil {
-			return fmt.Errorf("解析响应失败: %w", err)
+			return fmt.Errorf("unmarshal response failed: %w", err)
 		}
 	}
 	return nil
+}
+
+// DoRaw 发送预构建的 HTTP 请求，自动附加 Authorization 头并经过重试逻辑。
+//
+// 用于 multipart/form-data 等非 JSON 请求场景（如文件上传）。
+// 调用方负责构建 *http.Request 和读取 *http.Response.Body。
+// 返回的 resp.Body 由调用方负责关闭。
+func (c *HTTPClient) DoRaw(req *http.Request) (*http.Response, error) {
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	return c.doWithRetry(req)
 }
 
 // Stream 发送 SSE 流式请求，返回事件通道。
@@ -151,7 +165,7 @@ func (c *HTTPClient) Do(ctx context.Context, method, path string, body any, resu
 //	if err := <-errs; err != nil {
 //	    log.Fatal(err)
 //	}
-func (c *HTTPClient) Stream(ctx context.Context, method, path string, body interface{}) (<-chan SseEvent, <-chan error) {
+func (c *HTTPClient) Stream(ctx context.Context, method, path string, body any) (<-chan SseEvent, <-chan error) {
 	eventCh := make(chan SseEvent, 100)
 	errCh := make(chan error, 1)
 
@@ -159,7 +173,7 @@ func (c *HTTPClient) Stream(ctx context.Context, method, path string, body inter
 	if body != nil {
 		data, err := json.Marshal(body)
 		if err != nil {
-			errCh <- fmt.Errorf("序列化请求体失败: %w", err)
+			errCh <- fmt.Errorf("marshal request body failed: %w", err)
 			close(eventCh)
 			return eventCh, errCh
 		}
@@ -168,7 +182,7 @@ func (c *HTTPClient) Stream(ctx context.Context, method, path string, body inter
 
 	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, bodyReader)
 	if err != nil {
-		errCh <- fmt.Errorf("构建请求失败: %w", err)
+		errCh <- fmt.Errorf("build request failed: %w", err)
 		close(eventCh)
 		return eventCh, errCh
 	}
@@ -182,7 +196,7 @@ func (c *HTTPClient) Stream(ctx context.Context, method, path string, body inter
 
 		resp, err := c.client.Do(req)
 		if err != nil {
-			errCh <- fmt.Errorf("SSE 请求失败: %w", err)
+			errCh <- fmt.Errorf("SSE request failed: %w", err)
 			return
 		}
 		defer resp.Body.Close()
@@ -205,7 +219,7 @@ func (c *HTTPClient) Stream(ctx context.Context, method, path string, body inter
 				if dataBuf.Len() > 0 {
 					var event SseEvent
 					if err := json.Unmarshal(dataBuf.Bytes(), &event); err != nil {
-						errCh <- fmt.Errorf("SSE 解析失败: %w", err)
+						errCh <- fmt.Errorf("SSE parse failed: %w", err)
 						return
 					}
 					// 忽略 ping 保活事件
@@ -240,7 +254,7 @@ func (c *HTTPClient) Stream(ctx context.Context, method, path string, body inter
 		}
 
 		if err := scanner.Err(); err != nil && !strings.Contains(err.Error(), "context") {
-			errCh <- fmt.Errorf("SSE 扫描器异常: %w", err)
+			errCh <- fmt.Errorf("SSE scanner error: %w", err)
 		}
 	}()
 
@@ -288,14 +302,14 @@ func (c *HTTPClient) doWithRetry(req *http.Request) (*http.Response, error) {
 		// 检查是否需要按状态码重试
 		if c.isRetryableStatus(resp.StatusCode) {
 			resp.Body.Close()
-			lastErr = fmt.Errorf("可重试状态码: %d", resp.StatusCode)
+			lastErr = fmt.Errorf("retryable status code: %d", resp.StatusCode)
 			continue
 		}
 
 		return resp, nil
 	}
 
-	return nil, fmt.Errorf("超过最大重试次数: %w", lastErr)
+	return nil, fmt.Errorf("max retries exceeded: %w", lastErr)
 }
 
 // isRetryableStatus 判断 HTTP 状态码是否触发重试。

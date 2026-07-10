@@ -72,7 +72,7 @@ func BuildContainer(sdkCfg *sdkconfig.Config, srvCfg *config.ServerConfig) (*Con
 }
 
 // Invoke 调用 dig.Container.Invoke，用于从容器提取已注册的依赖。
-func (c *Container) Invoke(f interface{}) error {
+func (c *Container) Invoke(f any) error {
 	return c.inner.Invoke(f)
 }
 
@@ -96,7 +96,7 @@ func newClientPool(cfg *sdkconfig.Config, srvCfg *config.ServerConfig) *ClientPo
 			cfg.BaseURL,
 			key,
 			cfg.Timeout,
-			client.DefaultRetryConfig(),
+			client.DefaultRetryConfig(3),
 			transport,
 		)
 		clients = append(clients, c)

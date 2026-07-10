@@ -13,7 +13,7 @@ func TestRegisterAndGet(t *testing.T) {
 	def := &MethodDef{
 		Name:        "greet",
 		Description: "返回问候语",
-		Handler: func(ctx context.Context, params json.RawMessage) (interface{}, error) {
+		Handler: func(ctx context.Context, params json.RawMessage) (any, error) {
 			return map[string]string{"msg": "hello"}, nil
 		},
 	}
@@ -50,8 +50,8 @@ func TestGetNotFound(t *testing.T) {
 func TestRegisterDuplicate(t *testing.T) {
 	r := NewMethodRegistry()
 
-	def1 := &MethodDef{Name: "greet", Handler: func(ctx context.Context, params json.RawMessage) (interface{}, error) { return nil, nil }}
-	def2 := &MethodDef{Name: "greet", Handler: func(ctx context.Context, params json.RawMessage) (interface{}, error) { return nil, nil }}
+	def1 := &MethodDef{Name: "greet", Handler: func(ctx context.Context, params json.RawMessage) (any, error) { return nil, nil }}
+	def2 := &MethodDef{Name: "greet", Handler: func(ctx context.Context, params json.RawMessage) (any, error) { return nil, nil }}
 
 	if err := r.Register("greet", def1); err != nil {
 		t.Fatalf("首次 Register 失败: %v", err)
@@ -71,8 +71,8 @@ func TestRegisterDuplicate(t *testing.T) {
 func TestList(t *testing.T) {
 	r := NewMethodRegistry()
 
-	r.Register("a", &MethodDef{Name: "a", Handler: func(ctx context.Context, params json.RawMessage) (interface{}, error) { return nil, nil }})
-	r.Register("b", &MethodDef{Name: "b", Handler: func(ctx context.Context, params json.RawMessage) (interface{}, error) { return nil, nil }})
+	r.Register("a", &MethodDef{Name: "a", Handler: func(ctx context.Context, params json.RawMessage) (any, error) { return nil, nil }})
+	r.Register("b", &MethodDef{Name: "b", Handler: func(ctx context.Context, params json.RawMessage) (any, error) { return nil, nil }})
 
 	list := r.List()
 	if len(list) != 2 {
@@ -110,7 +110,7 @@ func TestConcurrentAccess(t *testing.T) {
 			defer wg.Done()
 			r.Register(string(rune('A'+i%26))+string(rune('0'+i/26)), &MethodDef{
 				Name:    "test",
-				Handler: func(ctx context.Context, params json.RawMessage) (interface{}, error) { return nil, nil },
+				Handler: func(ctx context.Context, params json.RawMessage) (any, error) { return nil, nil },
 			})
 		}()
 	}

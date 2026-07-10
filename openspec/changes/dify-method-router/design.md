@@ -25,16 +25,16 @@
 ### 1. Handler 签名：`func(ctx, params) (result, error)`
 
 ```go
-type MethodHandler func(ctx context.Context, params json.RawMessage) (interface{}, error)
+type MethodHandler func(ctx context.Context, params json.RawMessage) (any, error)
 ```
 
 - params 使用 `json.RawMessage`，由各方法自行解析为具体结构体
-- result 返回 `interface{}`，序列化为 JSON 后放入响应
+- result 返回 `any`，序列化为 JSON 后放入响应
 - error 返回时自动映射为失败响应
 
-**理由**：Go 泛型无法在 map 中存储不同签名的函数。`json.RawMessage` + `interface{}` 是最小公约数，每个方法在自己的实现里做类型断言/解析即可。
+**理由**：Go 泛型无法在 map 中存储不同签名的函数。`json.RawMessage` + `any` 是最小公约数，每个方法在自己的实现里做类型断言/解析即可。
 
-**备选**：`func(ctx, params map[string]interface{})` — 拒绝，要求所有方法都做 map → struct 的手动转换，易出错。
+**备选**：`func(ctx, params map[string]any)` — 拒绝，要求所有方法都做 map → struct 的手动转换，易出错。
 
 ### 2. 响应信封：统一 success/error 结构
 

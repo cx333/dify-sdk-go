@@ -20,12 +20,12 @@ func BuildContainer(cfg *config.Config) (*dig.Container, error) {
 
 	// 注册全局配置
 	if err := c.Provide(func() *config.Config { return cfg }); err != nil {
-		return nil, fmt.Errorf("di: 注册 Config 失败: %w", err)
+		return nil, fmt.Errorf("di: register Config failed: %w", err)
 	}
 
 	// 注册 HTTPClient（单例，连接池复用）
 	if err := c.Provide(provideHTTPClient); err != nil {
-		return nil, fmt.Errorf("di: 注册 HTTPClient 失败: %w", err)
+		return nil, fmt.Errorf("di: register HTTPClient failed: %w", err)
 	}
 
 	return c, nil
@@ -37,13 +37,13 @@ func BuildContainerWithKey(cfg *config.Config, apiKey string) (*dig.Container, e
 	c := dig.New()
 
 	if err := c.Provide(func() *config.Config { return cfg }); err != nil {
-		return nil, fmt.Errorf("di: 注册 Config 失败: %w", err)
+		return nil, fmt.Errorf("di: register Config failed: %w", err)
 	}
 
 	if err := c.Provide(func(cfg *config.Config) *client.HTTPClient {
-		return client.NewHTTPClient(cfg.BaseURL, apiKey, cfg.Timeout, client.DefaultRetryConfig())
+		return client.NewHTTPClient(cfg.BaseURL, apiKey, cfg.Timeout, client.DefaultRetryConfig(cfg.MaxRetries))
 	}); err != nil {
-		return nil, fmt.Errorf("di: 注册 HTTPClient 失败: %w", err)
+		return nil, fmt.Errorf("di: register HTTPClient failed: %w", err)
 	}
 
 	return c, nil
@@ -56,5 +56,5 @@ func provideHTTPClient(cfg *config.Config) *client.HTTPClient {
 	if len(cfg.APIKeys) > 0 {
 		key = cfg.APIKeys[0]
 	}
-	return client.NewHTTPClient(cfg.BaseURL, key, cfg.Timeout, client.DefaultRetryConfig())
+	return client.NewHTTPClient(cfg.BaseURL, key, cfg.Timeout, client.DefaultRetryConfig(cfg.MaxRetries))
 }

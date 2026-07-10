@@ -260,7 +260,7 @@ func (c *WorkflowClient) Stop(ctx context.Context, workflowID string) error
 
 - 每个 API 领域一个 Client（Chat、Workflow、Knowledge、File、Model）
 - 共享底层 `HTTPClient`，通过 DI 注入
-- 请求/响应使用强类型结构体，避免 `map[string]interface{}`
+- 请求/响应使用强类型结构体，避免 `map[string]any`
 - SSE 流式返回 `chan SSEEvent`，调用方可用 `for range` 消费
 
 **理由**：

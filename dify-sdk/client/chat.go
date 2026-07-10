@@ -63,7 +63,7 @@ func (c *ChatClient) SendMessage(ctx context.Context, req ChatRequest) (*ChatCom
 	}
 	var resp ChatCompletionResponse
 	if err := c.http.Do(ctx, "POST", "/chat-messages", req, &resp); err != nil {
-		return nil, fmt.Errorf("chat: 发送消息失败: %w", err)
+		return nil, fmt.Errorf("chat: send message failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -86,7 +86,7 @@ func (c *ChatClient) StopGeneration(ctx context.Context, taskID, user string) er
 	}
 	var result SuccessResult
 	if err := c.http.Do(ctx, "POST", "/chat-messages/"+taskID+"/stop", map[string]string{"user": user}, &result); err != nil {
-		return fmt.Errorf("chat: 停止生成失败: %w", err)
+		return fmt.Errorf("chat: stop generation failed: %w", err)
 	}
 	return nil
 }
@@ -103,7 +103,7 @@ func (c *ChatClient) GetSuggestedQuestions(ctx context.Context, messageID, user 
 		Data   []string `json:"data"`
 	}
 	if err := c.http.Do(ctx, "GET", path, nil, &resp); err != nil {
-		return nil, fmt.Errorf("chat: 获取建议问题失败: %w", err)
+		return nil, fmt.Errorf("chat: get suggested questions failed: %w", err)
 	}
 	return resp.Data, nil
 }
@@ -123,7 +123,7 @@ func (c *ChatClient) GetConversations(ctx context.Context, user, lastID string, 
 	}
 	var resp ConversationListResponse
 	if err := c.http.Do(ctx, "GET", path, nil, &resp); err != nil {
-		return nil, fmt.Errorf("chat: 获取会话列表失败: %w", err)
+		return nil, fmt.Errorf("chat: get conversations failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -143,7 +143,7 @@ func (c *ChatClient) GetMessages(ctx context.Context, conversationID, user, firs
 	}
 	var resp MessageListResponse
 	if err := c.http.Do(ctx, "GET", path, nil, &resp); err != nil {
-		return nil, fmt.Errorf("chat: 获取消息历史失败: %w", err)
+		return nil, fmt.Errorf("chat: get messages failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -156,7 +156,7 @@ func (c *ChatClient) Feedback(ctx context.Context, messageID string, req Feedbac
 	}
 	var result SuccessResult
 	if err := c.http.Do(ctx, "POST", "/messages/"+messageID+"/feedbacks", req, &result); err != nil {
-		return fmt.Errorf("chat: 提交反馈失败: %w", err)
+		return fmt.Errorf("chat: submit feedback failed: %w", err)
 	}
 	return nil
 }
@@ -169,7 +169,7 @@ func (c *ChatClient) RenameConversation(ctx context.Context, conversationID stri
 	}
 	var resp Conversation
 	if err := c.http.Do(ctx, "POST", "/conversations/"+conversationID+"/name", req, &resp); err != nil {
-		return nil, fmt.Errorf("chat: 重命名会话失败: %w", err)
+		return nil, fmt.Errorf("chat: rename conversation failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -185,23 +185,23 @@ func (c *ChatClient) DeleteConversation(ctx context.Context, conversationID, use
 		body = map[string]string{"user": user}
 	}
 	if err := c.http.Do(ctx, "DELETE", "/conversations/"+conversationID, body, nil); err != nil {
-		return fmt.Errorf("chat: 删除会话失败: %w", err)
+		return fmt.Errorf("chat: delete conversation failed: %w", err)
 	}
 	return nil
 }
 
 // GetConversationVariables 获取会话变量。
 // 使用 GET /conversations/{conversation_id}/variables。
-func (c *ChatClient) GetConversationVariables(ctx context.Context, conversationID, user string) ([]interface{}, error) {
+func (c *ChatClient) GetConversationVariables(ctx context.Context, conversationID, user string) ([]any, error) {
 	if user == "" {
 		user = c.resolveUser("")
 	}
 	path := fmt.Sprintf("/conversations/%s/variables?user=%s", conversationID, user)
 	var resp struct {
-		Data []interface{} `json:"data"`
+		Data []any `json:"data"`
 	}
 	if err := c.http.Do(ctx, "GET", path, nil, &resp); err != nil {
-		return nil, fmt.Errorf("chat: 获取对话变量失败: %w", err)
+		return nil, fmt.Errorf("chat: get conversation variables failed: %w", err)
 	}
 	return resp.Data, nil
 }
@@ -211,7 +211,7 @@ func (c *ChatClient) GetConversationVariables(ctx context.Context, conversationI
 func (c *ChatClient) GetAppInfo(ctx context.Context) (*AppInfo, error) {
 	var resp AppInfo
 	if err := c.http.Do(ctx, "GET", "/info", nil, &resp); err != nil {
-		return nil, fmt.Errorf("chat: 获取应用信息失败: %w", err)
+		return nil, fmt.Errorf("chat: get app info failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -221,7 +221,7 @@ func (c *ChatClient) GetAppInfo(ctx context.Context) (*AppInfo, error) {
 func (c *ChatClient) GetAppParameters(ctx context.Context) (*AppParameters, error) {
 	var resp AppParameters
 	if err := c.http.Do(ctx, "GET", "/parameters", nil, &resp); err != nil {
-		return nil, fmt.Errorf("chat: 获取应用参数失败: %w", err)
+		return nil, fmt.Errorf("chat: get app parameters failed: %w", err)
 	}
 	return &resp, nil
 }

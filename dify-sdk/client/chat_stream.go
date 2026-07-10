@@ -62,8 +62,6 @@ func (c *ChatClient) SendChatStream(ctx context.Context, req ChatRequest) (<-cha
 					msgID = ev.MessageID
 				}
 
-				DebugRawEvent(ev.Event, ev.Answer, ev.Metadata)
-
 				if u := extractUsage(ev.Metadata); u != nil {
 					usage = u
 				}
@@ -125,7 +123,15 @@ func extractUsage(raw json.RawMessage) *Usage {
 }
 
 // DebugRawEvent 打印原始 SSE 事件的 metadata 到 stdout，用于排查 Dify 返回格式。
-// 仅在开发调试时打开。
+//
+// SendChatStream 默认不会调用此函数。如需调试，在调用 SendChatStream 之前，
+// 自行在事件循环中调用 DebugRawEvent。
+//
+//	events, errs := chat.SendChatStream(ctx, req)
+//	for ev := range events {
+//	    DebugRawEvent(ev.Type, ev.Content, nil)
+//	    // ...
+//	}
 func DebugRawEvent(event, answer string, metadata json.RawMessage) {
 	if len(metadata) > 0 {
 		fmt.Printf("[DEBUG] event=%s answer_len=%d metadata=%s\n", event, len(answer), string(metadata))

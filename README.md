@@ -44,11 +44,11 @@ func main() {
     )
 
     // 2. 发送对话消息（阻塞模式）
-    chat := client.NewChatClient(httpClient)
+    chat := client.NewChatClient(httpClient, "")
     resp, err := chat.SendMessage(context.Background(), client.ChatRequest{
         Query:  "你好，请介绍一下自己",
         User:   "user-001",
-        Inputs: map[string]interface{}{},
+        Inputs: map[string]any{},
     })
     if err != nil {
         panic(err)
@@ -77,9 +77,9 @@ if err := <-errs; err != nil {
 ### 执行工作流
 
 ```go
-wf := client.NewWorkflowClient(httpClient)
+wf := client.NewWorkflowClient(httpClient, "")
 result, err := wf.Run(context.Background(), client.WorkflowRunRequest{
-    Inputs: map[string]interface{}{
+    Inputs: map[string]any{
         "topic": "AI 发展趋势",
     },
     ResponseMode: "blocking",
@@ -112,7 +112,7 @@ for _, seg := range retrieved.Segments {
 ### 文件上传
 
 ```go
-file := client.NewFileClient(httpClient)
+file := client.NewFileClient(httpClient, "")
 resp, err := file.Upload(context.Background(), client.UploadFileRequest{
     FilePath: "./document.pdf",
     User:     "user-001",
@@ -167,6 +167,8 @@ dify-sdk-go/
 ```env
 DIFY_BASE_URL=https://api.dify.ai/v1
 DIFY_API_KEY=app-xxxxxxxxxxxxx
+# 可选：当请求未传 user 时的兜底值。多用户场景请勿依赖此值，应逐请求传真实用户 ID。
+# DIFY_DEFAULT_USER=internal-tool
 SERVER_PORT=3000
 ```
 

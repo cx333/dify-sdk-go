@@ -63,35 +63,34 @@ func (c *FileClient) UploadFile(ctx context.Context, filename string, fileData i
 
 	// 添加 user 表单字段
 	if err := writer.WriteField("user", user); err != nil {
-		return nil, fmt.Errorf("file: 写入 user 字段失败: %w", err)
+		return nil, fmt.Errorf("file: write user field failed: %w", err)
 	}
 
 	// 添加文件字段
 	part, err := writer.CreateFormFile("file", filename)
 	if err != nil {
-		return nil, fmt.Errorf("file: 创建文件表单字段失败: %w", err)
+		return nil, fmt.Errorf("file: create form file field failed: %w", err)
 	}
 	if _, err := io.Copy(part, fileData); err != nil {
-		return nil, fmt.Errorf("file: 写入文件数据失败: %w", err)
+		return nil, fmt.Errorf("file: write file data failed: %w", err)
 	}
 	writer.Close()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", c.http.baseURL+"/files/upload", &buf)
+	req, err := http.NewRequestWithContext(ctx, "POST", c.http.BaseURL()+"/files/upload", &buf)
 	if err != nil {
-		return nil, fmt.Errorf("file: 构建上传请求失败: %w", err)
+		return nil, fmt.Errorf("file: build upload request failed: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+c.http.apiKey)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	resp, err := c.http.client.Do(req)
+	resp, err := c.http.DoRaw(req)
 	if err != nil {
-		return nil, fmt.Errorf("file: 上传失败: %w", err)
+		return nil, fmt.Errorf("file: upload failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("file: 读取响应失败: %w", err)
+		return nil, fmt.Errorf("file: read response failed: %w", err)
 	}
 
 	if resp.StatusCode >= 400 {
@@ -100,7 +99,7 @@ func (c *FileClient) UploadFile(ctx context.Context, filename string, fileData i
 
 	var result FileUploadResponse
 	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("file: 解析响应失败: %w", err)
+		return nil, fmt.Errorf("file: unmarshal response failed: %w", err)
 	}
 	return &result, nil
 }
@@ -119,15 +118,14 @@ func (c *FileClient) DownloadFile(ctx context.Context, fileID string, asAttachme
 		path += "?as_attachment=true"
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", c.http.baseURL+path, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", c.http.BaseURL()+path, nil)
 	if err != nil {
-		return nil, "", fmt.Errorf("file: 构建下载请求失败: %w", err)
+		return nil, "", fmt.Errorf("file: build download request failed: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+c.http.apiKey)
 
-	resp, err := c.http.client.Do(req)
+	resp, err := c.http.DoRaw(req)
 	if err != nil {
-		return nil, "", fmt.Errorf("file: 下载失败: %w", err)
+		return nil, "", fmt.Errorf("file: download failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -138,7 +136,7 @@ func (c *FileClient) DownloadFile(ctx context.Context, fileID string, asAttachme
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, "", fmt.Errorf("file: 读取文件内容失败: %w", err)
+		return nil, "", fmt.Errorf("file: read file content failed: %w", err)
 	}
 
 	mimeType := resp.Header.Get("Content-Type")

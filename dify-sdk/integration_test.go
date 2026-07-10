@@ -95,7 +95,7 @@ func TestIntegration_FullChain(t *testing.T) {
 		}
 
 		wfResp, err := wfClient.Run(context.Background(), client.WorkflowRunRequest{
-			Inputs: map[string]interface{}{"text": "hello"},
+			Inputs: map[string]any{"text": "hello"},
 			User:   "test-user",
 		})
 		if err != nil {
@@ -108,7 +108,7 @@ func TestIntegration_FullChain(t *testing.T) {
 		chatResp, err := chatClient.SendMessage(context.Background(), client.ChatRequest{
 			Query:  "hi",
 			User:   "test-user",
-			Inputs: map[string]interface{}{},
+			Inputs: map[string]any{},
 		})
 		if err != nil {
 			t.Fatalf("SendMessage 失败: %v", err)
@@ -138,8 +138,8 @@ func TestIntegration_FullChain(t *testing.T) {
 		t.Errorf("store.All() = %d, want 2", len(all))
 	}
 	byMode := s.GetByMode("chat")
-	// 每个 Key 都会写入 "chat" 应用，两个 Key 共 2 条（byMode 保留重复以追踪关联）
-	if len(byMode) != 2 || byMode[0].Name != "应用1" {
+	// 相同 ID 的 app 重复 upsert 会原地替换，不产生重复条目
+	if len(byMode) != 1 || byMode[0].Name != "应用1" {
 		t.Errorf("GetByMode(chat) len=%d name=%q", len(byMode), byMode[0].Name)
 	}
 }

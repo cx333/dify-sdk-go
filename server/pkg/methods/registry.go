@@ -12,7 +12,7 @@ import (
 // MethodHandler 已注册方法的函数签名。
 // params 为原始 JSON，由各方法自行解析为具体结构体。
 // result 为任意可 JSON 序列化的值，放入统一响应的 data 字段。
-type MethodHandler func(ctx context.Context, params json.RawMessage) (interface{}, error)
+type MethodHandler func(ctx context.Context, params json.RawMessage) (any, error)
 
 // MethodDef 描述一个已注册方法。
 type MethodDef struct {

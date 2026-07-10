@@ -33,8 +33,8 @@ type chatRequest struct {
 // UnmarshalJSON 自定义反序列化，使 key_index 同时支持字符串和数字。
 func (r *chatRequest) UnmarshalJSON(data []byte) error {
 	var raw struct {
-		Query    string      `json:"query"`
-		KeyIndex interface{} `json:"key_index"`
+		Query    string `json:"query"`
+		KeyIndex any    `json:"key_index"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err

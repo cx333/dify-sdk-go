@@ -102,7 +102,7 @@ func (c *WorkflowClient) Run(ctx context.Context, req WorkflowRunRequest) (*Work
 	}
 	var resp WorkflowBlockingResponse
 	if err := c.http.Do(ctx, "POST", "/workflows/run", req, &resp); err != nil {
-		return nil, fmt.Errorf("workflow: 执行失败: %w", err)
+		return nil, fmt.Errorf("workflow: run failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -129,7 +129,7 @@ func (c *WorkflowClient) RunByID(ctx context.Context, workflowID string, req Wor
 	var resp WorkflowBlockingResponse
 	path := "/workflows/" + workflowID + "/run"
 	if err := c.http.Do(ctx, "POST", path, req, &resp); err != nil {
-		return nil, fmt.Errorf("workflow: 按 ID 执行失败: %w", err)
+		return nil, fmt.Errorf("workflow: run by ID failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -140,7 +140,7 @@ func (c *WorkflowClient) GetRunDetail(ctx context.Context, workflowRunID string)
 	var resp WorkflowResult
 	path := "/workflows/run/" + workflowRunID
 	if err := c.http.Do(ctx, "GET", path, nil, &resp); err != nil {
-		return nil, fmt.Errorf("workflow: 获取执行详情失败: %w", err)
+		return nil, fmt.Errorf("workflow: get run detail failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -168,7 +168,7 @@ func (c *WorkflowClient) GetLogs(ctx context.Context, opts WorkflowLogsOptions) 
 	}
 	var resp WorkflowLogsResponse
 	if err := c.http.Do(ctx, "GET", path, nil, &resp); err != nil {
-		return nil, fmt.Errorf("workflow: 获取日志失败: %w", err)
+		return nil, fmt.Errorf("workflow: get logs failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -182,7 +182,7 @@ func (c *WorkflowClient) StopTask(ctx context.Context, taskID, user string) erro
 	var result SuccessResult
 	path := "/workflows/tasks/" + taskID + "/stop"
 	if err := c.http.Do(ctx, "POST", path, map[string]string{"user": user}, &result); err != nil {
-		return fmt.Errorf("workflow: 停止任务失败: %w", err)
+		return fmt.Errorf("workflow: stop task failed: %w", err)
 	}
 	return nil
 }

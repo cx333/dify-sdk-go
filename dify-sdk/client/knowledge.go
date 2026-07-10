@@ -35,7 +35,7 @@ func NewKnowledgeClient(http *HTTPClient) *KnowledgeClient {
 func (c *KnowledgeClient) CreateDataset(ctx context.Context, req CreateDatasetRequest) (*Dataset, error) {
 	var resp Dataset
 	if err := c.http.Do(ctx, "POST", "/datasets", req, &resp); err != nil {
-		return nil, fmt.Errorf("knowledge: 创建知识库失败: %w", err)
+		return nil, fmt.Errorf("knowledge: create dataset failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -46,7 +46,7 @@ func (c *KnowledgeClient) ListDatasets(ctx context.Context, page, limit int) (*D
 	path := fmt.Sprintf("/datasets?page=%d&limit=%d", page, limit)
 	var resp DatasetListResponse
 	if err := c.http.Do(ctx, "GET", path, nil, &resp); err != nil {
-		return nil, fmt.Errorf("knowledge: 获取知识库列表失败: %w", err)
+		return nil, fmt.Errorf("knowledge: list datasets failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -56,7 +56,7 @@ func (c *KnowledgeClient) ListDatasets(ctx context.Context, page, limit int) (*D
 func (c *KnowledgeClient) GetDataset(ctx context.Context, datasetID string) (*Dataset, error) {
 	var resp Dataset
 	if err := c.http.Do(ctx, "GET", "/datasets/"+datasetID, nil, &resp); err != nil {
-		return nil, fmt.Errorf("knowledge: 获取知识库详情失败: %w", err)
+		return nil, fmt.Errorf("knowledge: get dataset failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -66,7 +66,7 @@ func (c *KnowledgeClient) GetDataset(ctx context.Context, datasetID string) (*Da
 func (c *KnowledgeClient) UpdateDataset(ctx context.Context, datasetID string, req UpdateDatasetRequest) (*Dataset, error) {
 	var resp Dataset
 	if err := c.http.Do(ctx, "PATCH", "/datasets/"+datasetID, req, &resp); err != nil {
-		return nil, fmt.Errorf("knowledge: 更新知识库失败: %w", err)
+		return nil, fmt.Errorf("knowledge: update dataset failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -75,7 +75,7 @@ func (c *KnowledgeClient) UpdateDataset(ctx context.Context, datasetID string, r
 // 使用 DELETE /datasets/{dataset_id}。
 func (c *KnowledgeClient) DeleteDataset(ctx context.Context, datasetID string) error {
 	if err := c.http.Do(ctx, "DELETE", "/datasets/"+datasetID, nil, nil); err != nil {
-		return fmt.Errorf("knowledge: 删除知识库失败: %w", err)
+		return fmt.Errorf("knowledge: delete dataset failed: %w", err)
 	}
 	return nil
 }
@@ -88,7 +88,7 @@ func (c *KnowledgeClient) CreateDocumentFromText(ctx context.Context, datasetID 
 	var resp DocumentCreationResponse
 	path := "/datasets/" + datasetID + "/document/create-by-text"
 	if err := c.http.Do(ctx, "POST", path, req, &resp); err != nil {
-		return nil, fmt.Errorf("knowledge: 从文本创建文档失败: %w", err)
+		return nil, fmt.Errorf("knowledge: create document from text failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -99,7 +99,7 @@ func (c *KnowledgeClient) ListDocuments(ctx context.Context, datasetID string, p
 	path := fmt.Sprintf("/datasets/%s/documents?page=%d&limit=%d", datasetID, page, limit)
 	var resp DocumentListResponse
 	if err := c.http.Do(ctx, "GET", path, nil, &resp); err != nil {
-		return nil, fmt.Errorf("knowledge: 获取文档列表失败: %w", err)
+		return nil, fmt.Errorf("knowledge: list documents failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -110,7 +110,7 @@ func (c *KnowledgeClient) GetDocument(ctx context.Context, datasetID, documentID
 	var resp Document
 	path := "/datasets/" + datasetID + "/documents/" + documentID
 	if err := c.http.Do(ctx, "GET", path, nil, &resp); err != nil {
-		return nil, fmt.Errorf("knowledge: 获取文档详情失败: %w", err)
+		return nil, fmt.Errorf("knowledge: get document failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -120,7 +120,7 @@ func (c *KnowledgeClient) GetDocument(ctx context.Context, datasetID, documentID
 func (c *KnowledgeClient) DeleteDocument(ctx context.Context, datasetID, documentID string) error {
 	path := "/datasets/" + datasetID + "/documents/" + documentID
 	if err := c.http.Do(ctx, "DELETE", path, nil, nil); err != nil {
-		return fmt.Errorf("knowledge: 删除文档失败: %w", err)
+		return fmt.Errorf("knowledge: delete document failed: %w", err)
 	}
 	return nil
 }
@@ -133,7 +133,7 @@ func (c *KnowledgeClient) RetrieveSegments(ctx context.Context, datasetID string
 	var resp RetrieveResponse
 	path := "/datasets/" + datasetID + "/retrieve"
 	if err := c.http.Do(ctx, "POST", path, req, &resp); err != nil {
-		return nil, fmt.Errorf("knowledge: 检索失败: %w", err)
+		return nil, fmt.Errorf("knowledge: retrieve failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -147,7 +147,7 @@ func (c *KnowledgeClient) CreateSegments(ctx context.Context, datasetID, documen
 	path := "/datasets/" + datasetID + "/documents/" + documentID + "/segments"
 	req := map[string]any{"segments": segments}
 	if err := c.http.Do(ctx, "POST", path, req, &resp); err != nil {
-		return nil, fmt.Errorf("knowledge: 创建段落失败: %w", err)
+		return nil, fmt.Errorf("knowledge: create segments failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -158,7 +158,7 @@ func (c *KnowledgeClient) ListSegments(ctx context.Context, datasetID, documentI
 	path := fmt.Sprintf("/datasets/%s/documents/%s/segments?page=%d&limit=%d", datasetID, documentID, page, limit)
 	var resp SegmentPaginatedResponse
 	if err := c.http.Do(ctx, "GET", path, nil, &resp); err != nil {
-		return nil, fmt.Errorf("knowledge: 获取段落列表失败: %w", err)
+		return nil, fmt.Errorf("knowledge: list segments failed: %w", err)
 	}
 	return &resp, nil
 }
@@ -168,7 +168,7 @@ func (c *KnowledgeClient) ListSegments(ctx context.Context, datasetID, documentI
 func (c *KnowledgeClient) DeleteSegment(ctx context.Context, datasetID, documentID, segmentID string) error {
 	path := "/datasets/" + datasetID + "/documents/" + documentID + "/segments/" + segmentID
 	if err := c.http.Do(ctx, "DELETE", path, nil, nil); err != nil {
-		return fmt.Errorf("knowledge: 删除段落失败: %w", err)
+		return fmt.Errorf("knowledge: delete segment failed: %w", err)
 	}
 	return nil
 }

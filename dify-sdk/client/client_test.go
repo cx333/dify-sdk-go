@@ -14,7 +14,7 @@ import (
 // newTestServer 创建模拟 Dify API 的 httptest 服务器。
 func newTestServer(handler http.HandlerFunc) (*httptest.Server, *HTTPClient) {
 	srv := httptest.NewServer(handler)
-	client := NewHTTPClient(srv.URL, "test-key", 10*time.Second, DefaultRetryConfig())
+	client := NewHTTPClient(srv.URL, "test-key", 10*time.Second, DefaultRetryConfig(3))
 	return srv, client
 }
 
@@ -40,7 +40,7 @@ func TestChatClient_SendMessage(t *testing.T) {
 		Query:        "你好",
 		User:         "user-1",
 		ResponseMode: "blocking",
-		Inputs:       map[string]interface{}{},
+		Inputs:       map[string]any{},
 	})
 	if err != nil {
 		t.Fatalf("SendMessage 失败: %v", err)
@@ -121,7 +121,7 @@ func TestWorkflowClient_Run(t *testing.T) {
 			Data: &WorkflowResult{
 				ID:     "run-1",
 				Status: "succeeded",
-				Outputs: map[string]interface{}{
+				Outputs: map[string]any{
 					"result": "处理完成",
 				},
 			},
@@ -131,7 +131,7 @@ func TestWorkflowClient_Run(t *testing.T) {
 
 	c := NewWorkflowClient(httpClient, "")
 	resp, err := c.Run(context.Background(), WorkflowRunRequest{
-		Inputs: map[string]interface{}{"text": "hello"},
+		Inputs: map[string]any{"text": "hello"},
 		User:   "user-1",
 	})
 	if err != nil {
@@ -147,7 +147,7 @@ func TestWorkflowClient_GetRunDetail(t *testing.T) {
 		json.NewEncoder(w).Encode(WorkflowResult{
 			ID:      "run-1",
 			Status:  "succeeded",
-			Outputs: map[string]interface{}{"text": "ok"},
+			Outputs: map[string]any{"text": "ok"},
 		})
 	})
 	defer srv.Close()
@@ -276,7 +276,7 @@ func (r *mockReader) Read(p []byte) (n int, err error) {
 func TestChatClient_ErrorResponse(t *testing.T) {
 	srv, httpClient := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"code":    "not_chat_app",
 			"message": "App mode mismatch",
 			"status":  400,
@@ -286,7 +286,7 @@ func TestChatClient_ErrorResponse(t *testing.T) {
 
 	c := NewChatClient(httpClient, "")
 	_, err := c.SendMessage(context.Background(), ChatRequest{
-		Query: "hi", User: "u1", Inputs: map[string]interface{}{},
+		Query: "hi", User: "u1", Inputs: map[string]any{},
 	})
 	if err == nil {
 		t.Fatal("期望错误响应")

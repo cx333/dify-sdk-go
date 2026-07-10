@@ -27,7 +27,7 @@ func main() {
 
 	// 使用第一个 API Key 创建 HTTPClient
 	key := cfg.APIKeys[0]
-	httpClient := client.NewHTTPClient(cfg.BaseURL, key, cfg.Timeout, client.DefaultRetryConfig())
+	httpClient := client.NewHTTPClient(cfg.BaseURL, key, cfg.Timeout, client.DefaultRetryConfig(cfg.MaxRetries))
 
 	ctx := context.Background()
 	cmd := os.Args[1]
@@ -58,7 +58,7 @@ func main() {
 		resp, err := c.SendMessage(ctx, client.ChatRequest{
 			Query:  query,
 			User:   user,
-			Inputs: map[string]interface{}{},
+			Inputs: map[string]any{},
 		})
 		if err != nil {
 			log.Fatalf("发送消息失败: %v", err)
@@ -91,7 +91,7 @@ func main() {
 			return
 		}
 		user := os.Args[2]
-		inputs := map[string]interface{}{}
+		inputs := map[string]any{}
 		for _, arg := range os.Args[3:] {
 			parts := strings.SplitN(arg, "=", 2)
 			if len(parts) == 2 {

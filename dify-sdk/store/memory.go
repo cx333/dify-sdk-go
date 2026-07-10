@@ -47,13 +47,27 @@ func NewMemoryStore() *MemoryStore {
 }
 
 // Upsert 插入或更新应用元数据（相同 ID 覆盖）。
+//
+// byMode 和 byKey 索引在重复 upsert 时原地替换已有条目，
+// 避免切片无限增长。
 func (s *MemoryStore) Upsert(app *AppMeta) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.apps[app.ID] = app
-	s.byMode[app.Mode] = append(s.byMode[app.Mode], app)
-	s.byKey[app.APIKey] = append(s.byKey[app.APIKey], app)
+	s.byMode[app.Mode] = upsertSlice(s.byMode[app.Mode], app)
+	s.byKey[app.APIKey] = upsertSlice(s.byKey[app.APIKey], app)
+}
+
+// upsertSlice 在切片中按 ID 查找并替换已有条目，未找到则追加。
+func upsertSlice(slice []*AppMeta, app *AppMeta) []*AppMeta {
+	for i, existing := range slice {
+		if existing.ID == app.ID {
+			slice[i] = app
+			return slice
+		}
+	}
+	return append(slice, app)
 }
 
 // GetByID 按应用 ID 查询。
@@ -122,7 +136,7 @@ func (s *MemoryStore) Preload(ctx context.Context, keys []string, fetcher Metada
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			httpClient := client.NewHTTPClient(baseURL, k, timeout, client.DefaultRetryConfig())
+			httpClient := client.NewHTTPClient(baseURL, k, timeout, client.DefaultRetryConfig(3))
 			apps, err := fetcher(ctx, httpClient)
 			if err != nil {
 				errMu.Lock()

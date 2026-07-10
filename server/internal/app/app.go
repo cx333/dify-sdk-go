@@ -138,7 +138,7 @@ func preloadApps(cfg *sdkconfig.Config, log *logger.Logger) *store.MemoryStore {
 	defer cancel()
 
 	for i, key := range cfg.APIKeys {
-		c := client.NewHTTPClient(cfg.BaseURL, key, cfg.Timeout, client.DefaultRetryConfig())
+		c := client.NewHTTPClient(cfg.BaseURL, key, cfg.Timeout, client.DefaultRetryConfig(3))
 		chatClient := client.NewChatClient(c, "")
 		info, err := chatClient.GetAppInfo(ctx)
 		if err != nil {
